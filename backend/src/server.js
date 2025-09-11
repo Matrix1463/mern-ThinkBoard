@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 
 import notesRoutes from "./routes/notesRoutes.js";
 import { connectDB } from "./config/db.js";
@@ -11,13 +12,17 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const __dirname = path.resolve(); // Get the current directory name
 
 
 // Middleware 
-
-app.use(cors({
-    origin: "http://localhost:5173" // your frontend URL
-})); // Enable CORS for all routes
+if(process.env.NODE_ENV !== "production") {
+    app.use(
+        cors({
+            origin: "http://localhost:5173" // your frontend URL
+        })
+    ); // Enable CORS for all routes
+}
 app.use(express.json());
 app.use(rateLimiter)
 
@@ -33,6 +38,15 @@ app.use(rateLimiter)
 
 // Routes
 app.use("/api/notes", notesRoutes) // Mount the notes routes at /api/notes
+
+if(process.env.NODE_ENV === "production") {
+    // Serve static files from the React frontend app
+    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+    app.get("*", (req,res) => {
+        res.sendFile(path.join(__dirname, '../frontend', 'dist', 'index.html'));
+    });
+}
 
 
 // It's best practice to connect to the database first
